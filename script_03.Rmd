@@ -44,7 +44,7 @@ sep_old <-
   group_by(id, title, name, department)%>%
   summarize(u_grad=sum(u_grad), .groups="drop") %>%
   filter(u_grad > 10)
-sep_old
+View(sep_old)
 
 # But this is not correct! Look for Gov 50: Data. What do you see? What can you
 # do to clean it up?
@@ -55,6 +55,24 @@ sep_old
 
 **Prompt:** Read in and clean the new data, creating an object called `sep_new`. 
 
+```{r}
+
+sep_new <- 
+  read_excel("new_data/class_enrollment_summary_by_term_9-22-2020.xlsx", 
+             skip = 3) %>% 
+  clean_names() %>% 
+  filter(! is.na(course_title)) %>% 
+  select(-grad, -non_degree, -x_reg, -vus, -employee, 
+         -withdraw, -total, -instructor_full_name, -course_section_code) %>%
+  rename(id = course_id,
+         title = course_title,
+         name = course_name,
+         department = course_department) %>% 
+  group_by(id, title, name, department)%>%
+  summarize(u_grad=sum(u_grad), .groups="drop") %>%
+  filter(u_grad > 10)
+sep_new
+```
 
 
 ### Scene 2
@@ -62,19 +80,39 @@ sep_old
 **Prompt:** Dean Amanda Claybaugh is concerned about the drop in undergraduate enrollment in some courses between September 1 and today. She wants you to analyze this issue. Before you dive into the details, provide some bullet points as to how Wisdom and Temperance apply to this situation. Every student should have several bullet points. Someone may be asked to share their screen and discuss. Refer to the Chapter 3 discussions about these Cardinal Virtues. Open it up in your browser.
 
 
-Before we start on the model, Wisdom suggests we should:
-
-
-
+Before we start on the model, Wisdom suggests we should: 
+- define exactly what we are looking for
+- the difference between new and old u_grad (course enrollment) numbers
 
 After we have a model, Temperance suggests we should:
-
+- recognize the limits of our models
+- think about how the model might not reflect the real reasons students are dropping
 
 
 ### Scene 3
 
 **Prompt:** Which classes had the biggest increases and decreases in undergraduate enrollments between September 1 and today? Make a graphic that shows the 5 biggest increases and decreases. Make it look nice.
 
+```{r Scene 3, include=TRUE}
+
+the_data<- inner_join(sep_old, sep_new, by=c("id", "title", "name", "department"))
+decreases<- the_data%>%
+  mutate(change= u_grad.x - u_grad.y)%>%
+  arrange(desc(change))%>%
+  tail(n=5)
+decreases
+increases<- the_data%>%
+  mutate(change= u_grad.x - u_grad.y)%>%
+  arrange(desc(change))%>%
+  head(n=5)
+increases
+changes<- full_join(decreases, increases)
+changes
+ggplot(changes, aes(name, change))+
+  geom_col()
+
+?inner_join
+```
 
 
 
